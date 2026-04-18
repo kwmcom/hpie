@@ -12,6 +12,7 @@
 !hpie/
 !examples/
 !demos/
+!demos/**
 
 # Allow contents of important directories
 !hpie/**
