@@ -1,14 +1,14 @@
-from .parser import Assignment, PrintStatement, IfStatement, WhileLoop, RepeatLoop, ChangeStatement, BinaryOp, Literal, Identifier, InputStatement
+from .parser import *
+from .ast_nodes import *
 
-# Run the program by following the instructions
 class Interpreter:
     def __init__(self):
         self.scopes = [{}]
+        self.functions = {}
 
     def get_var(self, name):
         for scope in reversed(self.scopes):
-            if name in scope:
-                return scope[name]
+            if name in scope: return scope[name]
         raise Exception(f"Unknown variable '{name}'")
 
     def set_var(self, name, value):
@@ -16,58 +16,60 @@ class Interpreter:
 
     def interpret(self, statements):
         for stmt in statements:
-            self.execute(stmt)
+            if isinstance(stmt, FunctionDefinition):
+                self.functions[stmt.name] = stmt
+            else:
+                self.execute(stmt)
 
     def execute(self, stmt):
-        if isinstance(stmt, Assignment):
-            self.set_var(stmt.target, self.evaluate(stmt.value))
+        if isinstance(stmt, Assignment): self.set_var(stmt.target, self.evaluate(stmt.value))
         elif isinstance(stmt, PrintStatement):
-            values = [str(self.evaluate(expr)) for expr in stmt.expressions]
-            print("".join(values))
+            print("".join([str(self.evaluate(e)) for e in stmt.expressions]))
         elif isinstance(stmt, IfStatement):
-            if self.evaluate(stmt.condition):
-                self.interpret(stmt.then_block)
-            elif stmt.else_block:
-                self.interpret(stmt.else_block)
+            if self.evaluate(stmt.condition): self.interpret(stmt.then_block)
+            elif stmt.else_block: self.interpret(stmt.else_block)
         elif isinstance(stmt, WhileLoop):
-            while self.evaluate(stmt.condition):
-                self.interpret(stmt.block)
+            while self.evaluate(stmt.condition): self.interpret(stmt.block)
         elif isinstance(stmt, RepeatLoop):
-            times = self.evaluate(stmt.times)
-            for _ in range(int(times)):
-                self.interpret(stmt.block)
+            for _ in range(int(self.evaluate(stmt.times))): self.interpret(stmt.block)
         elif isinstance(stmt, InputStatement):
             val = input(f"Enter value for {stmt.target}: ")
-            try:
-                if '.' in val:
-                    val = float(val)
-                else:
-                    val = int(val)
-            except ValueError:
-                pass
-            self.set_var(stmt.target, val)
+            self.set_var(stmt.target, float(val) if '.' in val else int(val) if val.isdigit() else val)
         elif isinstance(stmt, ChangeStatement):
             amount = self.evaluate(stmt.amount)
             val = self.get_var(stmt.target)
-            if stmt.operation == 'Increase':
-                self.set_var(stmt.target, val + amount)
-            else:
-                self.set_var(stmt.target, val - amount)
+            self.set_var(stmt.target, val + amount if stmt.operation == 'Increase' else val - amount)
+        elif isinstance(stmt, FunctionCall):
+            self.call_function(stmt)
+        elif isinstance(stmt, ReturnStatement):
+            return self.evaluate(stmt.value)
+
+    def call_function(self, call):
+        func = self.functions.get(call.name)
+        if not func: raise Exception(f"Unknown function '{call.name}'")
+        
+        # New scope for function
+        new_scope = {}
+        for i, param in enumerate(func.params):
+            new_scope[param] = self.evaluate(call.args[i])
+        
+        self.scopes.append(new_scope)
+        # Execute function body
+        result = None
+        for stmt in func.block:
+            res = self.execute(stmt)
+            if isinstance(stmt, ReturnStatement):
+                result = res
+                break
+        self.scopes.pop()
+        return result
 
     def evaluate(self, expr):
-        if isinstance(expr, Literal):
-            return expr.value
-        elif isinstance(expr, Identifier):
-            return self.get_var(expr.name)
-        elif isinstance(expr, BinaryOp):
-            left = self.evaluate(expr.left)
-            right = self.evaluate(expr.right)
-            if expr.op == 'is': return left == right
-            if expr.op == 'is not': return left != right
-            if expr.op == '>': return left > right
-            if expr.op == '<': return left < right
-            if expr.op == '+': return left + right
-            if expr.op == '-': return left - right
-            if expr.op == '*': return left * right
-            if expr.op == '/': return left / right
-        raise Exception(f"Unknown expression type: {type(expr)}")
+        if isinstance(expr, Literal): return expr.value
+        if isinstance(expr, Identifier): return self.get_var(expr.name)
+        if isinstance(expr, FunctionCall): return self.call_function(expr)
+        if isinstance(expr, BinaryOp):
+            left, right = self.evaluate(expr.left), self.evaluate(expr.right)
+            ops = {'is': lambda l, r: l == r, 'is not': lambda l, r: l != r, '>': lambda l, r: l > r, '<': lambda l, r: l < r, '+': lambda l, r: l + r, '-': lambda l, r: l - r, '*': lambda l, r: l * r, '/': lambda l, r: l / r}
+            return ops[expr.op](left, right)
+        raise Exception(f"Unknown expression: {type(expr)}")

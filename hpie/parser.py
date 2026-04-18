@@ -1,57 +1,5 @@
 from .diagnostics import Diagnostic
-
-class ASTNode: pass
-class Statement(ASTNode): pass
-class Expression(ASTNode): pass
-
-class Assignment(Statement):
-    def __init__(self, target, value):
-        self.target = target
-        self.value = value
-
-class PrintStatement(Statement):
-    def __init__(self, expressions):
-        self.expressions = expressions
-
-class IfStatement(Statement):
-    def __init__(self, condition, then_block, else_block=None):
-        self.condition = condition
-        self.then_block = then_block
-        self.else_block = else_block
-
-class WhileLoop(Statement):
-    def __init__(self, condition, block):
-        self.condition = condition
-        self.block = block
-
-class RepeatLoop(Statement):
-    def __init__(self, times, block):
-        self.times = times
-        self.block = block
-
-class InputStatement(Statement):
-    def __init__(self, target):
-        self.target = target
-
-class ChangeStatement(Statement):
-    def __init__(self, target, amount, operation):
-        self.target = target
-        self.amount = amount
-        self.operation = operation
-
-class BinaryOp(Expression):
-    def __init__(self, left, op, right):
-        self.left = left
-        self.op = op
-        self.right = right
-
-class Literal(Expression):
-    def __init__(self, value):
-        self.value = value
-
-class Identifier(Expression):
-    def __init__(self, name):
-        self.name = name
+from .ast_nodes import *
 
 class Parser:
     def __init__(self, tokens, source_code):
@@ -67,15 +15,15 @@ class Parser:
     def consume(self, type=None, value=None, error_msg=None):
         token = self.peek()
         if not token:
-            self.fail(error_msg or f"Unexpected end of input", self.tokens[-1])
+            self.fail(error_msg or f"Unexpected end of input", self.tokens[-1], err_type="SyntaxError")
         if (type and token.type != type) or (value and token.value != value):
-            self.fail(error_msg or f"Expected {type} {value}, got {token.type} {token.value}", token)
+            self.fail(error_msg or f"Expected {type} {value}, got {token.type} {token.value}", token, err_type="SyntaxError")
         self.pos += 1
         return token
 
-    def fail(self, message, token):
+    def fail(self, message, token, err_type="SyntaxError"):
         line_content = self.source_lines[token.line - 1]
-        diag = Diagnostic(message, token.line, token.column, len(str(token.value)), line_content)
+        diag = Diagnostic(err_type, message, token.line, token.column, len(str(token.value)), line_content)
         print(diag.render())
         raise SystemExit(1)
 
@@ -99,22 +47,21 @@ class Parser:
             return self.parse_statement()
 
         if token.type == 'KEYWORD':
-            if token.value == 'Set':
-                return self.parse_assignment()
-            elif token.value == 'Say':
-                return self.parse_say()
-            elif token.value == 'Ask for':
-                return self.parse_ask()
-            elif token.value == 'If':
-                return self.parse_if()
-            elif token.value == 'While':
-                return self.parse_while()
-            elif token.value == 'Repeat':
-                return self.parse_repeat()
-            elif token.value in ['Increase', 'Decrease']:
-                return self.parse_change()
+            if token.value == 'Set': return self.parse_assignment()
+            elif token.value == 'Say': return self.parse_say()
+            elif token.value == 'Ask for': return self.parse_ask()
+            elif token.value == 'If': return self.parse_if()
+            elif token.value == 'While': return self.parse_while()
+            elif token.value == 'Repeat': return self.parse_repeat()
+            elif token.value in ['Increase', 'Decrease']: return self.parse_change()
+            elif token.value == 'To define': return self.parse_function_def()
+            elif token.value == 'Return': return self.parse_return()
+            elif token.value == 'Call': return self.parse_function_call()
         
-        self.fail(f"Unexpected statement starting with {token.value}", token)
+        if token.type == 'IDENTIFIER' and self.peek(1) and self.peek(1).value == '(':
+            return self.parse_function_call()
+        
+        self.fail(f"Unexpected statement starting with {token.value}", token, err_type="SyntaxError")
 
     def parse_assignment(self):
         self.consume('KEYWORD', 'Set')
@@ -136,7 +83,37 @@ class Parser:
         target = self.consume('IDENTIFIER').value
         return InputStatement(target)
 
-    # Expression parsing with precedence
+    def parse_return(self):
+        self.consume('KEYWORD', 'Return')
+        return ReturnStatement(self.parse_expression())
+
+    def parse_function_def(self):
+        self.consume('KEYWORD', 'To define')
+        name = self.consume('IDENTIFIER').value
+        params = []
+        if self.peek() and self.peek().value == '(':
+            self.consume('OPERATOR', '(')
+            while self.peek() and self.peek().type == 'IDENTIFIER':
+                params.append(self.consume('IDENTIFIER').value)
+                if self.peek() and self.peek().value == ',':
+                    self.consume('OPERATOR', ',')
+            self.consume('OPERATOR', ')')
+        block = self.parse_block()
+        return FunctionDefinition(name, params, block)
+
+    def parse_function_call(self):
+        if self.peek().value == 'Call':
+            self.consume('KEYWORD', 'Call')
+        name = self.consume('IDENTIFIER').value
+        self.consume('OPERATOR', '(')
+        args = []
+        while self.peek() and self.peek().value != ')':
+            args.append(self.parse_expression())
+            if self.peek() and self.peek().value == ',':
+                self.consume('OPERATOR', ',')
+        self.consume('OPERATOR', ')')
+        return FunctionCall(name, args)
+
     def parse_expression(self):
         return self.parse_comparison()
 
@@ -184,26 +161,27 @@ class Parser:
         if token.type == 'STRING':
             return Literal(token.value[1:-1])
         if token.type == 'IDENTIFIER':
+            if self.peek() and self.peek().value == '(':
+                return self.parse_function_call()
             return Identifier(token.value)
+        if token.value == 'Call':
+            return self.parse_function_call()
         if token.value == '(':
             expr = self.parse_expression()
             self.consume('OPERATOR', ')', error_msg='Expected closing ")" after expression')
             return expr
-        self.fail(f"Expected expression, got {token.value}", token)
+        self.fail(f"Expected expression, got {token.value}", token, err_type="SyntaxError")
 
     def parse_block(self):
         self.consume('COLON', error_msg="Blocks must start with a colon ':'")
         self.consume('NEWLINE', error_msg="Expected newline after ':'")
         
-        # Expect INDENT token
         indent_token = self.peek()
         if not indent_token or indent_token.type != 'INDENT':
-            self.fail("Expected an indented block", indent_token if indent_token else self.tokens[self.pos-1])
+            self.fail("Expected an indented block", indent_token if indent_token else self.tokens[self.pos-1], err_type="SyntaxError")
         
         self.consume('INDENT')
         statements = []
-        
-        # Parse statements until we see the matching DEDENT
         while self.peek() and self.peek().type != 'DEDENT':
             stmt = self.parse_statement()
             if stmt:
@@ -221,7 +199,6 @@ class Parser:
         then_block = self.parse_block()
         else_block = None
         
-        # Check for Otherwise at the same indentation level
         temp_pos = self.pos
         while temp_pos < len(self.tokens) and self.tokens[temp_pos].type == 'NEWLINE':
             temp_pos += 1
