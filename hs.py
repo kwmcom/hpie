@@ -3,11 +3,27 @@ from hpie.lexer import lex
 from hpie.parser import Parser
 from hpie.interpreter import Interpreter
 
-# Main tool to run Hpie files
+def run_code(code, interpreter, filename="<stdin>"):
+    try:
+        tokens = lex(code)
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        return interpreter.interpret(ast)
+    except Exception as e:
+        if not isinstance(e, SystemExit):
+            print(f"Error: {e}")
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 hs.py <filename.hs>")
-        sys.exit(1)
+        print("Hpie v1.0.0 Interactive Shell (Ctrl+C to exit)")
+        interpreter = Interpreter()
+        while True:
+            try:
+                line = input("hpie> ")
+                run_code(line, interpreter)
+            except EOFError: break
+            except KeyboardInterrupt: break
+        sys.exit(0)
 
     filename = sys.argv[1]
     try:
@@ -17,17 +33,8 @@ def main():
         print(f"Error: File '{filename}' not found")
         sys.exit(1)
 
-    try:
-        tokens = lex(code)
-        parser = Parser(tokens, code)
-        ast = parser.parse()
-        interpreter = Interpreter()
-        interpreter.interpret(ast)
-    except Exception as e:
-        # Don't print stack trace for Parser failures (handled by diagnostics)
-        if not isinstance(e, SystemExit):
-            print(f"Error: {e}")
-        sys.exit(1)
+    interpreter = Interpreter()
+    run_code(code, interpreter, filename)
 
 if __name__ == "__main__":
     main()

@@ -52,6 +52,11 @@ class Interpreter:
             return self.evaluate(stmt.value)
 
     def call_function(self, call):
+        if call.name == 'assert_equals':
+            args = [self.evaluate(a) for a in call.args]
+            if args[0] != args[1]: raise Exception(f"Assertion failed: {args[0]} != {args[1]}")
+            return None
+        
         func = self.functions.get(call.name)
         if not func: raise Exception(f"Unknown function '{call.name}'")
         
