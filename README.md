@@ -1,6 +1,6 @@
 # Hpie
 
-A simple, highly readable programming language that feels like natural English prose. Built with Python 3.
+A simple, highly readable programming language that feels like natural English prose. Built entirely in Python 3.
 
 ## Features
 
