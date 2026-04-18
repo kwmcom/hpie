@@ -38,14 +38,14 @@ Say fav and " is a great choice!"
 
 ## Error System
 
-HumanScript provides precise feedback to help you code:
+Hpie provides precise feedback to help you code:
 - `Error: Expected "to" after variable name`
 - `Error: Unknown variable 'x'`
 - `Error: Invalid indentation on line 5`
 
 ## Usage
 
-Run any `.hs` file using the HumanScript CLI:
+Run any `.hs` file using the Hpie CLI:
 
 ```bash
 python3 hs.py examples/demo.hs
@@ -54,5 +54,5 @@ python3 hs.py examples/demo.hs
 ## File Structure
 
 - `hs.py`: CLI entry point.
-- `humanscript/`: Core language implementation (Lexer, Parser, Interpreter).
+- `hpie/`: Core language implementation (Lexer, Parser, Interpreter).
 - `examples/`: Sample scripts to get you started.

@@ -6,11 +6,11 @@
 !README.md
 !LICENSE
 !.gitignore
-!humanscript/
+!hpie/
 !examples/
 
 # Allow contents of important directories
-!humanscript/**
+!hpie/**
 !examples/**
 
 # Still ignore Python noise and caches within allowed directories

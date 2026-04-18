@@ -1,9 +1,9 @@
 import sys
-from humanscript.lexer import lex
-from humanscript.parser import Parser
-from humanscript.interpreter import Interpreter
+from hpie.lexer import lex
+from hpie.parser import Parser
+from hpie.interpreter import Interpreter
 
-# Main tool to run HumanScript files
+# Main tool to run Hpie files
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 hs.py <filename.hs>")
