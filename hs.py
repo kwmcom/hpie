@@ -2,6 +2,7 @@ import sys
 from hpie.lexer import lex
 from hpie.parser import Parser
 from hpie.interpreter import Interpreter
+from hpie.diagnostics import HpieSyntaxError
 
 def run_code(code, interpreter, filename="<stdin>"):
     try:
@@ -9,9 +10,10 @@ def run_code(code, interpreter, filename="<stdin>"):
         parser = Parser(tokens, code)
         ast = parser.parse()
         return interpreter.interpret(ast)
+    except HpieSyntaxError as e:
+        print(e)
     except Exception as e:
-        if not isinstance(e, SystemExit):
-            print(f"Error: {e}")
+        print(f"Error: {e}")
 
 def main():
     if len(sys.argv) < 2:
@@ -20,6 +22,7 @@ def main():
         while True:
             try:
                 line = input("hpie> ")
+                if not line.strip(): continue
                 run_code(line, interpreter)
             except EOFError: break
             except KeyboardInterrupt: break

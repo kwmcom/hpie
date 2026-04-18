@@ -1,4 +1,4 @@
-from .diagnostics import Diagnostic
+from .diagnostics import Diagnostic, HpieSyntaxError
 from .ast_nodes import *
 
 class Parser:
@@ -24,8 +24,7 @@ class Parser:
     def fail(self, message, token, err_type="SyntaxError"):
         line_content = self.source_lines[token.line - 1]
         diag = Diagnostic(err_type, message, token.line, token.column, len(str(token.value)), line_content)
-        print(diag.render())
-        raise SystemExit(1)
+        raise HpieSyntaxError(diag)
 
     def parse(self):
         statements = []

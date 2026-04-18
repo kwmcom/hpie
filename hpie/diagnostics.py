@@ -18,7 +18,12 @@ class Diagnostic:
         caret = " " * caret_pos + "^" * max(1, self.length)
         return f"{header}\n{context}\n{caret}"
 
+class HpieSyntaxError(Exception):
+    def __init__(self, diag):
+        self.diag = diag
+        super().__init__(diag.render())
+
 def report_error(err_type, message, token, source_lines):
     line_content = source_lines[token.line - 1]
     diag = Diagnostic(err_type, message, token.line, token.column, len(str(token.value)), line_content)
-    print(diag.render())
+    raise HpieSyntaxError(diag)
