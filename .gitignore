@@ -4,6 +4,7 @@
 # Allow important files and directories
 !hs.py
 !README.md
+!LICENSE
 !.gitignore
 !humanscript/
 !examples/
