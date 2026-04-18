@@ -1,12 +1,8 @@
-# Define the structure of the program
-class ASTNode:
-    pass
+from .diagnostics import Diagnostic
 
-class Statement(ASTNode):
-    pass
-
-class Expression(ASTNode):
-    pass
+class ASTNode: pass
+class Statement(ASTNode): pass
+class Expression(ASTNode): pass
 
 class Assignment(Statement):
     def __init__(self, target, value):
@@ -57,10 +53,10 @@ class Identifier(Expression):
     def __init__(self, name):
         self.name = name
 
-# Turn tokens into an executable structure
 class Parser:
-    def __init__(self, tokens):
+    def __init__(self, tokens, source_code):
         self.tokens = tokens
+        self.source_lines = source_code.split('\n')
         self.pos = 0
 
     def peek(self, offset=0):
@@ -68,18 +64,24 @@ class Parser:
             return self.tokens[self.pos + offset]
         return None
 
-    def consume(self, type=None, value=None):
+    def consume(self, type=None, value=None, error_msg=None):
         token = self.peek()
         if not token:
-            raise Exception(f"Unexpected end of input, expected {type} {value}")
+            self.fail(error_msg or f"Unexpected end of input", self.tokens[-1])
         if (type and token.type != type) or (value and token.value != value):
-            raise Exception(f"Expected {type} {value}, got {token.type} {token.value} at line {token.line}")
+            self.fail(error_msg or f"Expected {type} {value}, got {token.type} {token.value}", token)
         self.pos += 1
         return token
 
+    def fail(self, message, token):
+        line_content = self.source_lines[token.line - 1]
+        diag = Diagnostic(message, token.line, token.column, len(str(token.value)), line_content)
+        print(diag.render())
+        raise SystemExit(1)
+
     def parse(self):
         statements = []
-        while self.peek():
+        while self.peek() and self.peek().type != 'DEDENT':
             stmt = self.parse_statement()
             if stmt:
                 statements.append(stmt)
@@ -89,11 +91,12 @@ class Parser:
 
     def parse_statement(self):
         token = self.peek()
-        if not token: return None
+        if not token or token.type in ['NEWLINE', 'DEDENT']:
+            return None
         
         if token.type == 'INDENT':
             self.consume('INDENT')
-            token = self.peek()
+            return self.parse_statement()
 
         if token.type == 'KEYWORD':
             if token.value == 'Set':
@@ -111,19 +114,14 @@ class Parser:
             elif token.value in ['Increase', 'Decrease']:
                 return self.parse_change()
         
-        self.pos += 1
-        return None
+        self.fail(f"Unexpected statement starting with {token.value}", token)
 
     def parse_assignment(self):
         self.consume('KEYWORD', 'Set')
         target_token = self.consume('IDENTIFIER')
-        target = target_token.value
-        try:
-            self.consume('KEYWORD', 'to')
-        except Exception:
-            raise Exception('Expected "to" after variable name')
+        self.consume('KEYWORD', 'to', error_msg='Expected "to" after variable name')
         value = self.parse_expression()
-        return Assignment(target, value)
+        return Assignment(target_token.value, value)
 
     def parse_say(self):
         self.consume('KEYWORD', 'Say')
@@ -138,9 +136,12 @@ class Parser:
         target = self.consume('IDENTIFIER').value
         return InputStatement(target)
 
+    # Expression parsing with precedence
     def parse_expression(self):
-        left = self.parse_primary()
-        
+        return self.parse_comparison()
+
+    def parse_comparison(self):
+        left = self.parse_sum()
         token = self.peek()
         if token and token.value == 'is':
             self.consume('KEYWORD', 'is')
@@ -156,10 +157,24 @@ class Parser:
                 self.consume('KEYWORD', 'less')
                 self.consume('KEYWORD', 'than')
                 op = '<'
-            
-            right = self.parse_expression()
+            right = self.parse_sum()
             return BinaryOp(left, op, right)
-            
+        return left
+
+    def parse_sum(self):
+        left = self.parse_product()
+        while self.peek() and self.peek().value in ['+', '-']:
+            op = self.consume('OPERATOR').value
+            right = self.parse_product()
+            left = BinaryOp(left, op, right)
+        return left
+
+    def parse_product(self):
+        left = self.parse_primary()
+        while self.peek() and self.peek().value in ['*', '/']:
+            op = self.consume('OPERATOR').value
+            right = self.parse_primary()
+            left = BinaryOp(left, op, right)
         return left
 
     def parse_primary(self):
@@ -170,27 +185,31 @@ class Parser:
             return Literal(token.value[1:-1])
         if token.type == 'IDENTIFIER':
             return Identifier(token.value)
-        raise Exception(f"Unexpected token {token}")
+        if token.value == '(':
+            expr = self.parse_expression()
+            self.consume('OPERATOR', ')', error_msg='Expected closing ")" after expression')
+            return expr
+        self.fail(f"Expected expression, got {token.value}", token)
 
     def parse_block(self):
         colon_token = self.consume('COLON')
         self.consume('NEWLINE')
         
+        # Lexer handles the INDENT token for us
         next_token = self.peek()
-        if not next_token or next_token.type != 'INDENT' or next_token.value == 0:
-            line_num = next_token.line if next_token else colon_token.line + 1
-            raise Exception(f"Invalid indentation on line {line_num}")
+        if not next_token or next_token.type != 'INDENT':
+            self.fail(f"Invalid indentation on line {next_token.line if next_token else colon_token.line + 1}", next_token or colon_token)
         
-        block_indent = next_token.value
+        self.consume('INDENT')
         statements = []
-        
-        while self.peek() and self.peek().type == 'INDENT' and self.peek().value >= block_indent:
+        while self.peek() and self.peek().type != 'DEDENT':
             stmt = self.parse_statement()
             if stmt:
                 statements.append(stmt)
             while self.peek() and self.peek().type == 'NEWLINE':
                 self.consume('NEWLINE')
         
+        self.consume('DEDENT')
         return statements
 
     def parse_if(self):
@@ -200,8 +219,9 @@ class Parser:
         then_block = self.parse_block()
         else_block = None
         
+        # Check for Otherwise at the same indentation level
         temp_pos = self.pos
-        while temp_pos < len(self.tokens) and self.tokens[temp_pos].type in ['NEWLINE', 'INDENT']:
+        while temp_pos < len(self.tokens) and self.tokens[temp_pos].type == 'NEWLINE':
             temp_pos += 1
         
         if temp_pos < len(self.tokens) and self.tokens[temp_pos].value == 'Otherwise':

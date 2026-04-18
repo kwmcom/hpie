@@ -64,4 +64,12 @@ class Interpreter:
                 return left > right
             elif expr.op == '<':
                 return left < right
+            elif expr.op == '+':
+                return left + right
+            elif expr.op == '-':
+                return left - right
+            elif expr.op == '*':
+                return left * right
+            elif expr.op == '/':
+                return left / right
         raise Exception(f"Unknown expression type: {type(expr)}")

@@ -1,10 +1,11 @@
 import re
 
-# Define the basic patterns for our language
+# Standard tokens for Hpie
 TOKEN_TYPES = [
     ('KEYWORD', r'\b(Set|to|Say|Ask for|If|then|Otherwise|While|Repeat|times|Increase|Decrease|by|is|not|greater|less|than|and)\b'),
     ('NUMBER', r'\d+(\.\d+)?'),
     ('STRING', r'"[^"]*"'),
+    ('OPERATOR', r'[\+\-\*/\(\)]'), # Math symbols and parentheses
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('COLON', r':'),
     ('NEWLINE', r'\n'),
@@ -21,22 +22,33 @@ class Token:
     def __repr__(self):
         return f"Token({self.type}, {repr(self.value)}, {self.line}:{self.column})"
 
-# Convert source code into a list of tokens
+# Tokenize source and handle indentation blocks
 def lex(code):
     tokens = []
     lines = code.split('\n')
+    indent_stack = [0]
     
     for line_num, line in enumerate(lines, 1):
-        if not line.strip() and line_num < len(lines):
+        stripped = line.lstrip()
+        if not stripped:
             continue
             
-        # Track indentation levels
-        indent_match = re.match(r'^([ \t]*)', line)
-        indent = len(indent_match.group(1)) if indent_match else 0
-        if line.strip():
-            tokens.append(Token('INDENT', indent, line_num, 0))
+        # Calculate current indentation
+        current_indent = len(line) - len(stripped)
+        
+        # Emit INDENT or DEDENT tokens
+        if current_indent > indent_stack[-1]:
+            indent_stack.append(current_indent)
+            tokens.append(Token('INDENT', current_indent, line_num, 0))
+        elif current_indent < indent_stack[-1]:
+            while current_indent < indent_stack[-1]:
+                indent_stack.pop()
+                tokens.append(Token('DEDENT', current_indent, line_num, 0))
+            if current_indent != indent_stack[-1]:
+                # This should be handled as a diagnostic, but for now we'll keep it simple
+                pass
 
-        pos = indent
+        pos = current_indent
         while pos < len(line):
             match = None
             for token_type, pattern in TOKEN_TYPES:
@@ -53,4 +65,9 @@ def lex(code):
         
         tokens.append(Token('NEWLINE', '\n', line_num, len(line)))
     
+    # Close any remaining blocks
+    while len(indent_stack) > 1:
+        indent_stack.pop()
+        tokens.append(Token('DEDENT', 0, len(lines), 0))
+        
     return tokens

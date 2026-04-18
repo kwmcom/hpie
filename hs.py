@@ -19,12 +19,14 @@ def main():
 
     try:
         tokens = lex(code)
-        parser = Parser(tokens)
+        parser = Parser(tokens, code)
         ast = parser.parse()
         interpreter = Interpreter()
         interpreter.interpret(ast)
     except Exception as e:
-        print(f"Error: {e}")
+        # Don't print stack trace for Parser failures (handled by diagnostics)
+        if not isinstance(e, SystemExit):
+            print(f"Error: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
