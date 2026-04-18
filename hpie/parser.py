@@ -192,16 +192,18 @@ class Parser:
         self.fail(f"Expected expression, got {token.value}", token)
 
     def parse_block(self):
-        colon_token = self.consume('COLON')
-        self.consume('NEWLINE')
+        self.consume('COLON', error_msg="Blocks must start with a colon ':'")
+        self.consume('NEWLINE', error_msg="Expected newline after ':'")
         
-        # Lexer handles the INDENT token for us
-        next_token = self.peek()
-        if not next_token or next_token.type != 'INDENT':
-            self.fail(f"Invalid indentation on line {next_token.line if next_token else colon_token.line + 1}", next_token or colon_token)
+        # Expect INDENT token
+        indent_token = self.peek()
+        if not indent_token or indent_token.type != 'INDENT':
+            self.fail("Expected an indented block", indent_token if indent_token else self.tokens[self.pos-1])
         
         self.consume('INDENT')
         statements = []
+        
+        # Parse statements until we see the matching DEDENT
         while self.peek() and self.peek().type != 'DEDENT':
             stmt = self.parse_statement()
             if stmt:
@@ -209,7 +211,7 @@ class Parser:
             while self.peek() and self.peek().type == 'NEWLINE':
                 self.consume('NEWLINE')
         
-        self.consume('DEDENT')
+        self.consume('DEDENT', error_msg="Block not properly closed (dedent expected)")
         return statements
 
     def parse_if(self):
