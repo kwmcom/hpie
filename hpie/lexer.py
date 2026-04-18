@@ -4,7 +4,7 @@ TOKEN_TYPES = [
     ('KEYWORD', r'\b(Set|to|Say|Ask for|If|then|Otherwise|While|Repeat|times|Increase|Decrease|by|is|not|greater|less|than|and|To define|Call|Return)\b'),
     ('NUMBER', r'\d+(\.\d+)?'),
     ('STRING', r'"[^"]*"'),
-    ('OPERATOR', r'[\+\-\*/\(\),]'), 
+    ('OPERATOR', r'[\+\-\*/\(\),\[\]]'), # Added [ and ]
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('COLON', r':'),
     ('NEWLINE', r'\n'),

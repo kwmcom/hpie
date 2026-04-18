@@ -103,7 +103,15 @@ class Parser:
     def parse_function_call(self):
         if self.peek().value == 'Call':
             self.consume('KEYWORD', 'Call')
+        
+        # Capture name, handle dict lookup like lib["add"]
         name = self.consume('IDENTIFIER').value
+        if self.peek() and self.peek().value == '[':
+            self.consume('OPERATOR', '[')
+            key = self.consume('STRING').value
+            self.consume('OPERATOR', ']')
+            name = f"{name}[{key}]"
+        
         self.consume('OPERATOR', '(')
         args = []
         while self.peek() and self.peek().value != ')':

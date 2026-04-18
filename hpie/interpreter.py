@@ -55,24 +55,28 @@ class Interpreter:
             return self.evaluate(stmt.value)
 
     def call_function(self, call):
-        # Handle built-in vs user function
-        if call.name in self.functions and not isinstance(self.functions[call.name], FunctionDefinition):
-            # It's a built-in
+        name = call.name
+        # Handle dict lookups like lib["add"]
+        if "[" in name:
+            var_name, key = name.split("[")
+            key = key.replace('"', '').replace(']', '')
+            obj = self.get_var(var_name)
+            func = obj[key]
+        else:
+            func = self.functions.get(name)
+
+        if not func: raise Exception(f"Unknown function '{name}'")
+
+        # Check if it's a built-in (function object, not AST node)
+        if callable(func):
             args = [self.evaluate(a) for a in call.args]
-            return self.functions[call.name](*args)
-        
-        if call.name == 'assert_equals': # legacy support
-            args = [self.evaluate(a) for a in call.args]
-            if args[0] != args[1]: raise Exception(f"Assertion failed: {args[0]} != {args[1]}")
-            return None
-        
-        func = self.functions.get(call.name)
-        if not func: raise Exception(f"Unknown function '{call.name}'")
-        
+            return func(*args)
+
+        # User defined function
         new_scope = {}
         for i, param in enumerate(func.params):
             new_scope[param] = self.evaluate(call.args[i])
-        
+
         self.scopes.append(new_scope)
         result = self.interpret(func.block)
         self.scopes.pop()
