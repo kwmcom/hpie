@@ -1,0 +1,18 @@
+# Ignore everything by default
+*
+
+# Allow important files and directories
+!hs.py
+!README.md
+!.gitignore
+!humanscript/
+!examples/
+
+# Allow contents of important directories
+!humanscript/**
+!examples/**
+
+# Still ignore Python noise and caches within allowed directories
+**/__pycache__/
+*.py[cod]
+*$py.class
