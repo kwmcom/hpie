@@ -19,19 +19,26 @@ class Interpreter:
             if isinstance(stmt, FunctionDefinition):
                 self.functions[stmt.name] = stmt
             else:
-                self.execute(stmt)
+                res = self.execute(stmt)
+                if res is not None: return res
 
     def execute(self, stmt):
         if isinstance(stmt, Assignment): self.set_var(stmt.target, self.evaluate(stmt.value))
         elif isinstance(stmt, PrintStatement):
             print("".join([str(self.evaluate(e)) for e in stmt.expressions]))
         elif isinstance(stmt, IfStatement):
-            if self.evaluate(stmt.condition): self.interpret(stmt.then_block)
-            elif stmt.else_block: self.interpret(stmt.else_block)
+            if self.evaluate(stmt.condition): 
+                return self.interpret(stmt.then_block)
+            elif stmt.else_block: 
+                return self.interpret(stmt.else_block)
         elif isinstance(stmt, WhileLoop):
-            while self.evaluate(stmt.condition): self.interpret(stmt.block)
+            while self.evaluate(stmt.condition):
+                res = self.interpret(stmt.block)
+                if res is not None: return res
         elif isinstance(stmt, RepeatLoop):
-            for _ in range(int(self.evaluate(stmt.times))): self.interpret(stmt.block)
+            for _ in range(int(self.evaluate(stmt.times))):
+                res = self.interpret(stmt.block)
+                if res is not None: return res
         elif isinstance(stmt, InputStatement):
             val = input(f"Enter value for {stmt.target}: ")
             self.set_var(stmt.target, float(val) if '.' in val else int(val) if val.isdigit() else val)
@@ -55,12 +62,7 @@ class Interpreter:
         
         self.scopes.append(new_scope)
         # Execute function body
-        result = None
-        for stmt in func.block:
-            res = self.execute(stmt)
-            if isinstance(stmt, ReturnStatement):
-                result = res
-                break
+        result = self.interpret(func.block)
         self.scopes.pop()
         return result
 
