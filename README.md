@@ -1,4 +1,4 @@
-# HumanScript
+# Hpie
 
 A simple, highly readable programming language that feels like natural English prose. Built with Python 3.
 
