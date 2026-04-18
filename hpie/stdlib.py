@@ -34,7 +34,9 @@ def rand_float(): return float(random.random())
 
 # String / List
 def join(lst, sep): return str(sep).join([str(x) for x in lst])
-def split(s, sep): return list(str(s).split(str(sep)))
+def split(s, sep): 
+    if sep == "": return list(str(s))
+    return list(str(s).split(str(sep)))
 def get_item(lst, idx): return lst[int(idx)]
 
 # Time
