@@ -5,13 +5,21 @@ Set max to 5
 To define get_hint(guess, secret):
     Set s_list to Call split(secret, "")
     Set g_list to Call split(guess, "")
+    Set hint to ""
+    Set i to 0
     
-    # Check first letter
-    Set h1 to "_"
-    If Call get_item(g_list, 0) is Call get_item(s_list, 0) then:
-        Set h1 to Call get_item(s_list, 0)
+    While i is less than 4:
+        Set g_char to Call get_item(g_list, i)
+        Set s_char to Call get_item(s_list, i)
+        
+        If g_char is s_char then:
+            Set hint to hint and g_char
+        Otherwise:
+            Set hint to hint and "_"
+        
+        Increase i by 1
     
-    Say "Hint: " and h1 and "___"
+    Say "Hint: " and hint
 
 Say "Welcome to Wordle-lite!"
 
