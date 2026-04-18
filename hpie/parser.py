@@ -177,6 +177,9 @@ class Parser:
             expr = self.parse_expression()
             self.consume('OPERATOR', ')', error_msg='Expected closing ")" after expression')
             return expr
+        # Allow 'and' as a literal/keyword in expressions for concatenation
+        if token.value == 'and':
+            return Identifier('and')
         self.fail(f"Expected expression, got {token.value}", token, err_type="SyntaxError")
 
     def parse_block(self):

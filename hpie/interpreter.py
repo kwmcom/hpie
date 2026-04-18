@@ -84,10 +84,12 @@ class Interpreter:
 
     def evaluate(self, expr):
         if isinstance(expr, Literal): return expr.value
-        if isinstance(expr, Identifier): return self.get_var(expr.name)
+        if isinstance(expr, Identifier):
+            if expr.name == 'and': return 'and'
+            return self.get_var(expr.name)
         if isinstance(expr, FunctionCall): return self.call_function(expr)
         if isinstance(expr, BinaryOp):
             left, right = self.evaluate(expr.left), self.evaluate(expr.right)
-            ops = {'is': lambda l, r: l == r, 'is not': lambda l, r: l != r, '>': lambda l, r: l > r, '<': lambda l, r: l < r, '+': lambda l, r: l + r, '-': lambda l, r: l - r, '*': lambda l, r: l * r, '/': lambda l, r: l / r}
+            ops = {'is': lambda l, r: l == r, 'is not': lambda l, r: l != r, '>': lambda l, r: l > r, '<': lambda l, r: l < r, '+': lambda l, r: l + r, '-': lambda l, r: l - r, '*': lambda l, r: l * r, '/': lambda l, r: l / r, 'and': lambda l, r: str(l) + str(r)}
             return ops[expr.op](left, right)
         raise Exception(f"Unknown expression: {type(expr)}")
