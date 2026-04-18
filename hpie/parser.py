@@ -1,4 +1,4 @@
-from .diagnostics import Diagnostic, HpieSyntaxError
+from .diagnostics import Diagnostic
 from .ast_nodes import *
 
 class Parser:
@@ -24,7 +24,8 @@ class Parser:
     def fail(self, message, token, err_type="SyntaxError"):
         line_content = self.source_lines[token.line - 1]
         diag = Diagnostic(err_type, message, token.line, token.column, len(str(token.value)), line_content)
-        raise HpieSyntaxError(diag)
+        print(diag.render())
+        raise SystemExit(1)
 
     def parse(self):
         statements = []
@@ -103,8 +104,6 @@ class Parser:
     def parse_function_call(self):
         if self.peek().value == 'Call':
             self.consume('KEYWORD', 'Call')
-        
-        # Capture name, handle dict lookup like lib["add"]
         name = self.consume('IDENTIFIER').value
         if self.peek() and self.peek().value == '[':
             self.consume('OPERATOR', '[')
@@ -122,7 +121,15 @@ class Parser:
         return FunctionCall(name, args)
 
     def parse_expression(self):
-        return self.parse_comparison()
+        return self.parse_and()
+
+    def parse_and(self):
+        left = self.parse_comparison()
+        while self.peek() and self.peek().value == 'and':
+            self.consume('KEYWORD', 'and')
+            right = self.parse_comparison()
+            left = BinaryOp(left, 'and', right)
+        return left
 
     def parse_comparison(self):
         left = self.parse_sum()
@@ -177,9 +184,6 @@ class Parser:
             expr = self.parse_expression()
             self.consume('OPERATOR', ')', error_msg='Expected closing ")" after expression')
             return expr
-        # Allow 'and' as a literal/keyword in expressions for concatenation
-        if token.value == 'and':
-            return Identifier('and')
         self.fail(f"Expected expression, got {token.value}", token, err_type="SyntaxError")
 
     def parse_block(self):
