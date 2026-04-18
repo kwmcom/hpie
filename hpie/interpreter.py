@@ -3,7 +3,16 @@ from .parser import Assignment, PrintStatement, IfStatement, WhileLoop, RepeatLo
 # Run the program by following the instructions
 class Interpreter:
     def __init__(self):
-        self.variables = {}
+        self.scopes = [{}]
+
+    def get_var(self, name):
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        raise Exception(f"Unknown variable '{name}'")
+
+    def set_var(self, name, value):
+        self.scopes[-1][name] = value
 
     def interpret(self, statements):
         for stmt in statements:
@@ -11,7 +20,7 @@ class Interpreter:
 
     def execute(self, stmt):
         if isinstance(stmt, Assignment):
-            self.variables[stmt.target] = self.evaluate(stmt.value)
+            self.set_var(stmt.target, self.evaluate(stmt.value))
         elif isinstance(stmt, PrintStatement):
             values = [str(self.evaluate(expr)) for expr in stmt.expressions]
             print("".join(values))
@@ -36,40 +45,29 @@ class Interpreter:
                     val = int(val)
             except ValueError:
                 pass
-            self.variables[stmt.target] = val
+            self.set_var(stmt.target, val)
         elif isinstance(stmt, ChangeStatement):
             amount = self.evaluate(stmt.amount)
-            if stmt.target not in self.variables:
-                self.variables[stmt.target] = 0
+            val = self.get_var(stmt.target)
             if stmt.operation == 'Increase':
-                self.variables[stmt.target] += amount
+                self.set_var(stmt.target, val + amount)
             else:
-                self.variables[stmt.target] -= amount
+                self.set_var(stmt.target, val - amount)
 
     def evaluate(self, expr):
         if isinstance(expr, Literal):
             return expr.value
         elif isinstance(expr, Identifier):
-            if expr.name not in self.variables:
-                raise Exception(f"Unknown variable '{expr.name}'")
-            return self.variables[expr.name]
+            return self.get_var(expr.name)
         elif isinstance(expr, BinaryOp):
             left = self.evaluate(expr.left)
             right = self.evaluate(expr.right)
-            if expr.op == 'is':
-                return left == right
-            elif expr.op == 'is not':
-                return left != right
-            elif expr.op == '>':
-                return left > right
-            elif expr.op == '<':
-                return left < right
-            elif expr.op == '+':
-                return left + right
-            elif expr.op == '-':
-                return left - right
-            elif expr.op == '*':
-                return left * right
-            elif expr.op == '/':
-                return left / right
+            if expr.op == 'is': return left == right
+            if expr.op == 'is not': return left != right
+            if expr.op == '>': return left > right
+            if expr.op == '<': return left < right
+            if expr.op == '+': return left + right
+            if expr.op == '-': return left - right
+            if expr.op == '*': return left * right
+            if expr.op == '/': return left / right
         raise Exception(f"Unknown expression type: {type(expr)}")
