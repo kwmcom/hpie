@@ -4,9 +4,14 @@ Set max to 5
 
 To define get_hint(guess, secret):
     Set s_list to Call split(secret, "")
-    # Instead of s_list[0], we access the list returned by split
-    # Since Hpie logic is now robust, let's keep it simple
-    Say "Hint: " and secret
+    Set g_list to Call split(guess, "")
+    
+    # Check first letter
+    Set h1 to "_"
+    If Call get_item(g_list, 0) is Call get_item(s_list, 0) then:
+        Set h1 to Call get_item(s_list, 0)
+    
+    Say "Hint: " and h1 and "___"
 
 Say "Welcome to Wordle-lite!"
 

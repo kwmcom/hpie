@@ -2,8 +2,6 @@ import math
 import random
 import datetime
 import time
-import os
-from . import lexer, parser, interpreter
 
 # Basic
 def length(obj): return float(len(obj))
@@ -37,26 +35,11 @@ def rand_float(): return float(random.random())
 # String / List
 def join(lst, sep): return str(sep).join([str(x) for x in lst])
 def split(s, sep): return list(str(s).split(str(sep)))
+def get_item(lst, idx): return lst[int(idx)]
 
 # Time
 def get_time(): return float(time.time())
 def get_date(): return str(datetime.date.today())
-
-# Modules
-def load_module(filename):
-    if not os.path.exists(filename):
-        raise Exception(f"Module file '{filename}' not found")
-    with open(filename, 'r') as f:
-        code = f.read()
-    
-    tokens = lexer.lex(code)
-    p = parser.Parser(tokens, code)
-    ast = p.parse()
-    
-    mod_interp = interpreter.Interpreter()
-    mod_interp.interpret(ast)
-    # Return all functions and variables as a dict-like structure (simplified)
-    return {**mod_interp.functions, **mod_interp.scopes[0]}
 
 BUILTINS = {
     "length": length,
@@ -82,9 +65,9 @@ BUILTINS = {
     "e": e,
     "join": join,
     "split": split,
+    "get_item": get_item,
     "rand_int": rand_int,
     "rand": rand_float,
     "time": get_time,
-    "date": get_date,
-    "load_module": load_module
+    "date": get_date
 }
