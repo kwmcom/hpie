@@ -15,7 +15,11 @@ To define get_hint(guess, secret):
         If g_char is s_char then:
             Set hint to hint and g_char
         Otherwise:
-            Set hint to hint and "_"
+            # Check for yellow (misplaced)
+            If Call contains(s_list, g_char) is 1.0 then:
+                Set hint to hint and "?"
+            Otherwise:
+                Set hint to hint and "_"
         
         Increase i by 1
     

@@ -38,6 +38,7 @@ def split(s, sep):
     if sep == "": return list(str(s))
     return list(str(s).split(str(sep)))
 def get_item(lst, idx): return lst[int(idx)]
+def contains(lst, val): return 1.0 if val in lst else 0.0
 
 # Time
 def get_time(): return float(time.time())
@@ -68,6 +69,7 @@ BUILTINS = {
     "join": join,
     "split": split,
     "get_item": get_item,
+    "contains": contains,
     "rand_int": rand_int,
     "rand": rand_float,
     "time": get_time,
