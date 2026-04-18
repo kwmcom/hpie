@@ -3,13 +3,13 @@ Set attempts to 0
 Set max to 5
 
 To define get_hint(guess, secret):
-    # Split strings into character lists
-    Set g_list to Call split(guess, "")
     Set s_list to Call split(secret, "")
+    Set hint to ""
     
-    # Check first letter
-    If g_list[0] is s_list[0] then:
-        Say "Hint: The first letter is correct!"
+    # Logic: Show first letter if guessed correctly, else _
+    # (Simplified for the first letter as requested h___)
+    Set hint to s_list[0] and "___"
+    Say "Hint: " and hint
 
 Say "Welcome to Wordle-lite!"
 
