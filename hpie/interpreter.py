@@ -1,10 +1,13 @@
 from .parser import *
 from .ast_nodes import *
+from .stdlib import BUILTINS
 
 class Interpreter:
     def __init__(self):
         self.scopes = [{}]
         self.functions = {}
+        for name, func in BUILTINS.items():
+            self.functions[name] = func
 
     def get_var(self, name):
         for scope in reversed(self.scopes):
@@ -52,7 +55,13 @@ class Interpreter:
             return self.evaluate(stmt.value)
 
     def call_function(self, call):
-        if call.name == 'assert_equals':
+        # Handle built-in vs user function
+        if call.name in self.functions and not isinstance(self.functions[call.name], FunctionDefinition):
+            # It's a built-in
+            args = [self.evaluate(a) for a in call.args]
+            return self.functions[call.name](*args)
+        
+        if call.name == 'assert_equals': # legacy support
             args = [self.evaluate(a) for a in call.args]
             if args[0] != args[1]: raise Exception(f"Assertion failed: {args[0]} != {args[1]}")
             return None
@@ -60,13 +69,11 @@ class Interpreter:
         func = self.functions.get(call.name)
         if not func: raise Exception(f"Unknown function '{call.name}'")
         
-        # New scope for function
         new_scope = {}
         for i, param in enumerate(func.params):
             new_scope[param] = self.evaluate(call.args[i])
         
         self.scopes.append(new_scope)
-        # Execute function body
         result = self.interpret(func.block)
         self.scopes.pop()
         return result
