@@ -1,0 +1,6 @@
+import("psutil" as sys)
+Set cpu to Call sys.cpu_percent()
+Set mem to Call sys.virtual_memory()
+Set mem_percent to Call get_attr(mem, "percent")
+Say "CPU Usage: " and cpu and "%"
+Say "Memory Usage: " and mem_percent and "%"

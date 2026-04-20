@@ -1,29 +1,41 @@
 class Diagnostic:
-    def __init__(self, err_type, message, line, column, length, source_line):
+    def __init__(self, err_type, message, line, column, length, line_content):
         self.err_type = err_type
         self.message = message
         self.line = line
         self.column = column
         self.length = length
-        self.source_line = source_line
+        self.line_content = line_content
 
     def render(self):
-        header = f"{self.err_type}: {self.message}"
-        context = f"Line {self.line}: {self.source_line.strip()}"
-        
-        prefix = f"Line {self.line}: "
-        original_indent = len(self.source_line) - len(self.source_line.lstrip())
-        caret_pos = len(prefix) + (self.column - original_indent)
-        
-        caret = " " * caret_pos + "^" * max(1, self.length)
-        return f"{header}\n{context}\n{caret}"
+        arrows = " " * self.column + "^" * self.length
+        return f"{self.err_type} on line {self.line}: {self.message}\n{self.line_content}\n{arrows}"
 
-class HpieSyntaxError(Exception):
-    def __init__(self, diag):
+
+class HpieError(Exception):
+    """Base exception for Hpie runtime errors."""
+    def __init__(self, message, diag=None):
+        super().__init__(message)
         self.diag = diag
-        super().__init__(diag.render())
 
-def report_error(err_type, message, token, source_lines):
-    line_content = source_lines[token.line - 1]
-    diag = Diagnostic(err_type, message, token.line, token.column, len(str(token.value)), line_content)
-    raise HpieSyntaxError(diag)
+
+class SyntaxError(HpieError):
+    pass
+
+
+class UndefinedVariableError(HpieError):
+    def __init__(self, name):
+        self.name = name
+        super().__init__(f"Unknown variable '{name}'")
+
+
+class UndefinedFunctionError(HpieError):
+    def __init__(self, name):
+        self.name = name
+        super().__init__(f"Unknown function '{name}'")
+
+
+class EvaluationError(HpieError):
+    def __init__(self, expr_type):
+        self.expr_type = expr_type
+        super().__init__(f"Unknown expression: {expr_type}")

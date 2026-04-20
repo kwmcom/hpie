@@ -1,0 +1,4 @@
+import("urllib.request" as net)
+# wttr.in/Paris provides a simple text output
+Set response to Call net.urlopen("https://wttr.in/Paris?format=3")
+Say "Weather in Paris: " and Call response.read()

@@ -2,7 +2,7 @@ import sys
 from hpie.lexer import lex
 from hpie.parser import Parser
 from hpie.interpreter import Interpreter
-from hpie.diagnostics import HpieSyntaxError
+
 
 def run_code(code, interpreter, filename="<stdin>"):
     try:
@@ -10,10 +10,9 @@ def run_code(code, interpreter, filename="<stdin>"):
         parser = Parser(tokens, code)
         ast = parser.parse()
         return interpreter.interpret(ast)
-    except HpieSyntaxError as e:
-        print(e)
     except Exception as e:
         print(f"Error: {e}")
+
 
 def main():
     if len(sys.argv) < 2:
@@ -22,15 +21,18 @@ def main():
         while True:
             try:
                 line = input("hpie> ")
-                if not line.strip(): continue
+                if not line.strip():
+                    continue
                 run_code(line, interpreter)
-            except EOFError: break
-            except KeyboardInterrupt: break
+            except EOFError:
+                break
+            except KeyboardInterrupt:
+                break
         sys.exit(0)
 
     filename = sys.argv[1]
     try:
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             code = f.read()
     except FileNotFoundError:
         print(f"Error: File '{filename}' not found")
@@ -38,6 +40,7 @@ def main():
 
     interpreter = Interpreter()
     run_code(code, interpreter, filename)
+
 
 if __name__ == "__main__":
     main()

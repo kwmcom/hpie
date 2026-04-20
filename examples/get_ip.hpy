@@ -1,0 +1,3 @@
+import("urllib.request" as net)
+Set response to Call net.urlopen("https://ident.me")
+Say "Your public IP is: " and Call response.read()

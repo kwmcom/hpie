@@ -1,0 +1,4 @@
+To define add(a, b):
+    Return a + b
+
+Set multiplier to 2

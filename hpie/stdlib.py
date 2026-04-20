@@ -5,6 +5,7 @@ import time
 
 # Basic
 def length(obj): return float(len(obj))
+def get_attr(obj, attr): return getattr(obj, attr)
 def to_str(obj): return str(obj)
 def is_num(obj): return 1.0 if isinstance(obj, (int, float)) else 0.0
 def is_str(obj): return 1.0 if isinstance(obj, str) else 0.0
@@ -45,6 +46,7 @@ def get_time(): return float(time.time())
 def get_date(): return str(datetime.date.today())
 
 BUILTINS = {
+    "get_attr": get_attr,
     "length": length,
     "to_string": to_str,
     "is_number": is_num,
